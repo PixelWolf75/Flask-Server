@@ -1,0 +1,367 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta property="og:title" content="">
+    <meta property="og:type" content="">
+    <meta property="og:url" content="">
+    <meta property="og:image" content="">
+
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="apple-touch-icon" href="icon.png">
+    <!-- Place favicon.ico in the root directory -->
+
+    <link rel="stylesheet" href="/static/css/normalize.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+
+    <meta name="theme-color" content="#fafafa">
+
+    <style>
+        canvas {
+            border: 1px solid #d3d3d3;
+            background-color: #f1f1f1;
+            width:100%;
+            height: 100%;
+        }
+    </style>
+    <div style="width:500px;height:500px;border:1px solid black;">
+        <canvas id="target_canvas" width="500" height="500"></canvas>
+    </div>
+</head>
+
+<body onload="">
+
+<!-- Add your site or application content here -->
+<!--
+<p>Hello world! This is HTML5 Boilerplate Test</p>
+<canvas id="Canvas" width="400" height="400"
+        style="border:1px solid #000000; width: 500px; height: 500px; background-color: #222222">
+</canvas>
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+        integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+        crossorigin="anonymous"></script>
+<script src="/static/js/vendor/modernizr-3.11.2.min.js"></script>
+<script src="/static/js/plugins.js"></script>
+<script src="/static/js/main.js"></script>
+<script src="/static/js/renderer.js"></script>
+<script src="/static/js/game.js"></script>
+<no_herre_script style="display: none">
+    class Client {
+        constructor(sid) {
+            this.sid = /** @type {string} */ sid;
+        }
+    }
+
+    let socket = io.connect('http://' + document.domain + ':' + location.port);
+    socket.on('connect', function () {
+        console.log('connected:', socket.id);
+        client_list.push(new Client(socket.id))
+        //socket.emit('my event', {data: 'I\'m connected!'});
+    });
+
+    socket.on('game_state', ()=>{
+       // Render the new state
+    });
+
+
+
+    socket.on('gameStart', function (data) {
+        myId = data['ID']
+    })
+
+    socket.on('message', function (data) {
+        console.log(data);
+    });
+
+
+
+    let client_list = /** @type {Client[]}*/ [];
+
+
+    class Snake {
+
+        /**
+         * Makes snake
+         * @param snakePiece {GridTile}
+         * @param ID {number}
+         */
+        constructor(snakePiece, ID) {
+            this.count = 1
+            this.ID = ID
+            this.currentDir = "None"
+            this.mySnakePieces = [snakePiece]
+            this.snakeTail = snakePiece
+
+            let Red = Math.floor(Math.random() * 256)
+            let Blue = Math.floor(Math.random() * 256)
+            let Green = Math.floor(Math.random() * 256)
+
+            this.color = "#" + Red.toString(16) + Green.toString(16) + Blue.toString(16)
+        }
+    }
+
+    class GridTile {
+        /**
+         * Makes the grid tile
+         * @param x {number}
+         * @param y {number}
+         * @param color {string}
+         */
+        constructor(x, y, color) {
+            this.x = x
+            this.y = y
+            this.color = color
+        }
+
+        render() {
+            const ctx = myGridArea.context;
+            ctx.fillStyle = this.color;
+
+            ctx.fillRect(this.x * tileLength, this.y * tileHeight, tileLength, tileHeight);
+
+            //document.getElementById("X-Display").innerText = "X:" + mySnakePieces[0].x;
+            //document.getElementById("Y-Display").innerText = "Y:" + mySnakePieces[0].y;
+        }
+
+        crashWith(otherObj) {
+            return (this.x === otherObj.x && this.y === otherObj.y);
+        }
+    }
+
+    class GridArea {
+        constructor() {
+            this.canvas = document.createElement("canvas")
+            this.context = this.canvas.getContext("2d");
+        }
+
+        start() {
+            this.canvas.width = CanvasLength;
+            this.canvas.height = CanvasHeight;
+            this.gridLength = 20;
+            this.gridHeight = 20;
+            //this.canvas.style.cursor = "none"; //hide the original cursor
+            /*
+            let xDisplay = document.createElement("div")
+            xDisplay.setAttribute("id", "X-Display")
+            xDisplay.appendChild(document.createTextNode("X:0"))
+            let yDisplay = document.createElement("div")
+            yDisplay.setAttribute("id", "Y-Display")
+            yDisplay.appendChild(document.createTextNode("Y:0"))
+             */
+            document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+            //document.body.insertBefore(yDisplay, document.body.childNodes[0]);
+            //document.body.insertBefore(xDisplay, document.body.childNodes[0]);
+
+            this.frameNo = 0;
+            this.interval = setInterval(updateGridArea, 1000 / 5);
+
+            window.addEventListener('keydown', function (e) {
+                myGridArea.keys =/** @type object[number, boolean] **/ (myGridArea.keys || {});
+
+                myGridArea.keys[e.key] = true;
+                let currentSnake = AllSnakes[myId];
+
+                switch (e.key) {
+                    case "ArrowLeft":
+                        currentSnake.currentDir = currentSnake.currentDir === "Right" ? currentDir : "Left"
+                        break;
+                    case "ArrowRight":
+                        currentSnake.currentDir = currentSnake.currentDir === "Left" ? currentDir : "Right"
+                        break;
+                    case "ArrowUp":
+                        currentSnake.currentDir = currentSnake.currentDir === "Down" ? currentDir : "Up"
+                        break;
+                    case "ArrowDown":
+                        currentSnake.currentDir = currentSnake.currentDir === "Up" ? currentDir : "Down"
+                        break;
+                }
+
+                console.log(currentSnake)
+                //socket.emit('snakeUpdate', {data: 'I\'m connected!'});
+
+
+            })
+            window.addEventListener('keyup', function (e) {
+                myGridArea.keys[e.keyCode] = false;
+            })
+        }
+
+        clear() {
+            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+
+        stop() {
+            clearInterval(this.interval);
+        }
+    };
+
+    async function post(url, data) {
+        const response = await fetch(url, {
+            method: 'post',
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+                //'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            console.error(response);
+            throw Error("Failed to talk to server");
+        }
+
+        return await response.json();
+    }
+
+    async function get(url) {
+        const response = await fetch(url, {
+            method: 'get',
+            headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+                //'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        if (!response.ok) {
+            console.error(response);
+            throw Error("Failed to talk to server");
+        }
+
+        return await response.json();
+    }
+
+    const myGridArea = new GridArea()
+    let AllSnakes = [];
+    let myId = -1;
+
+    let gridLength = 20;
+    let gridHeight = 20;
+    let CanvasLength = 500;
+    let CanvasHeight = 500;
+
+    let tileLength = CanvasLength / gridLength;
+    let tileHeight = CanvasHeight / gridHeight;
+
+    let myFruitPiece;
+
+    post("/api/eric/check", {"test": "A", "Connection": "True"}).then((data) => {
+        console.log("This is from post", data)
+    });
+
+    get("/api/eric/check").then((data) => {
+        console.log("This is from get", data)
+    });
+
+
+    function startGame() {
+        myGridArea.start();
+
+        let fruitX = Math.floor(Math.random() * gridLength - 1) + 1;
+        let fruitY = Math.floor(Math.random() * gridHeight - 1) + 1;
+
+        get("/api/connection/initiate").then((data) => {
+            console.log("This is from connection", data)
+            myId = myId === -1 ? data[0] : myId
+            if (myId !== -1) {
+                AllSnakes.push(new Snake(new GridTile(gridLength / 2, gridHeight / 2, "green"), myId))
+                //mySnakePieces.push(new gridTile(gridLength / 2, gridHeight / 2, "green"))
+                //document.getElementById("X-Display").innerText = "X:" + mySnakePieces[0].x;
+                //document.getElementById("Y-Display").innerText = "Y:" + mySnakePieces[0].y;
+                //mySnakeTail = mySnakePieces[0]
+                fruitX = data[1]
+                fruitY = data[2]
+                myFruitPiece = new GridTile(fruitX, fruitY, "red")
+            }
+        });
+        //myFruitPiece = new GridTile(fruitX, fruitY, "red")
+    }
+
+
+    function updateGridArea() {
+
+        myGridArea.clear()
+
+        myFruitPiece.render()
+
+        AllSnakes.forEach((snake) => {
+
+            snake.mySnakePieces.forEach((snakeNode, index) => {
+                snakeNode.render()
+            })
+
+            let mySnakeHead = snake.mySnakePieces[0]
+            let adjustment = [0, 0]
+
+            switch (snake.currentDir) {
+                case "Up":
+                    adjustment[1] = -1
+                    break;
+
+                case "Down":
+                    adjustment[1] = +1
+                    break;
+
+                case "Left":
+                    adjustment[0] = -1
+                    break;
+
+                case "Right":
+                    adjustment[0] = +1
+                    break;
+            }
+
+            snake.mySnakePieces.splice(0, 0, new GridTile(mySnakeHead.x + adjustment[0], mySnakeHead.y + adjustment[1], "green"))
+            snake.mySnakeTail = snake.mySnakePieces.pop()
+
+            if (myFruitPiece.crashWith(mySnakeHead)) {
+                console.log("Crashed into fruit")
+                console.log("Fruit X, Y:" + myFruitPiece.x + " " + myFruitPiece.y)
+                console.log("Head X, Y:" + mySnakeHead.x + " " + mySnakeHead.y)
+                snake.mySnakePieces.push(snake.mySnakeTail)
+
+                let x = Math.floor(Math.random() * gridLength - 1) + 1
+                let y = Math.floor(Math.random() * gridHeight - 1) + 1
+
+                while (true) {
+                    x = Math.floor(Math.random() * gridLength - 1) + 1
+                    y = Math.floor(Math.random() * gridHeight - 1) + 1
+                    if (snake.mySnakePieces.find((snakeNode) => {
+                        return (snakeNode.x === x && snakeNode.y === y)
+                    })) {
+                        continue;
+                    }
+                    break;
+                }
+
+                get('api/packet/update').then((data) => {
+                    console.log("This is from packet", data)
+                    myFruitPiece = new GridTile(data[0], data[1], "red")
+                })
+
+            }
+
+            snake.mySnakePieces.forEach((snakeNode, index) => {
+                if (index !== 0) {
+                    if (snake.mySnakePieces[0].crashWith(snakeNode)) {
+                        console.log("Head hit the snake")
+                        myGridArea.stop()
+                    }
+                }
+            })
+
+            if (mySnakeHead.x >= gridLength || mySnakeHead.x < 0 || mySnakeHead.y >= gridHeight || mySnakeHead.y < 0) {
+                myGridArea.stop()
+            }
+        })
+    }
+
+</no_herre_script>
+</body>
+
+</html>
